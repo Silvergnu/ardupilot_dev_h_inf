@@ -235,11 +235,9 @@ void Copter::fast_loop()
     // update INS immediately to get current gyro data populated
     ins.update();
 
-    // run low level rate controllers that only require IMU data
-    attitude_control->rate_controller_run();
-
-    // send outputs to the motors library immediately
-    motors_output();
+    // keep this function just in case it is needed by original ardupilot modes.
+    // run low-level rate controller
+     attitude_control->rate_controller_run();
 
     // run EKF state estimator (expensive)
     // --------------------
@@ -259,8 +257,13 @@ void Copter::fast_loop()
     // check if ekf has reset target heading or position
     check_ekf_reset();
 
-    // run the attitude controllers
-    update_flight_mode();
+   // run the attitude controllers (may overwrite values provided by rate controller)
+     update_flight_mode();
+
+    // send outputs to the motors library after updating the attitude controller
+    // in case of H-infinity it should update_flight_mode() will update the thrust
+    // of each motor, therefore call motors_output() after it.
+    motors_output();
 
     // update home from EKF if necessary
     update_home_from_EKF();
