@@ -352,6 +352,82 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_yaw(float euler_roll_angle
     attitude_controller_run_quat();
 }
 
+// Command an euler roll and pitch angle and an euler yaw rate Mu-synthesis control
+void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_mu(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds,
+    float roll, float pitch, float yaw, float thrustRef)
+{
+    // Convert from centidegrees on public interface to radians (references)
+    float euler_roll_angle = radians(euler_roll_angle_cd * 0.01f);
+    float euler_pitch_angle = radians(euler_pitch_angle_cd * 0.01f);
+    float euler_yaw_rate = radians(euler_yaw_rate_cds * 0.01f);
+    // calculate the attitude target euler angles
+    // calculate the attitude target euler angles
+    _attitude_target_quat.to_euler(_attitude_target_euler_angle.x, _attitude_target_euler_angle.y, _attitude_target_euler_angle.z);
+
+    // Add roll trim to compensate tail rotor thrust in heli (will return zero on multirotors)
+    euler_roll_angle += get_roll_trim_rad();
+
+    if (_rate_bf_ff_enabled) {
+        // translate the roll pitch and yaw acceleration limits to the euler axis
+        Vector3f euler_accel = euler_accel_limit(_attitude_target_euler_angle, Vector3f(get_accel_roll_max_radss(), get_accel_pitch_max_radss(), get_accel_yaw_max_radss()));
+
+        // When acceleration limiting and feedforward are enabled, the sqrt controller is used to compute an euler
+        // angular velocity that will cause the euler angle to smoothly stop at the input angle with limited deceleration
+        // and an exponential decay specified by smoothing_gain at the end.
+        _attitude_target_euler_rate.x = input_shaping_angle(wrap_PI(euler_roll_angle - _attitude_target_euler_angle.x), _input_tc, euler_accel.x, _attitude_target_euler_rate.x, _dt);
+        _attitude_target_euler_rate.y = input_shaping_angle(wrap_PI(euler_pitch_angle - _attitude_target_euler_angle.y), _input_tc, euler_accel.y, _attitude_target_euler_rate.y, _dt);
+
+        // When yaw acceleration limiting is enabled, the yaw input shaper constrains angular acceleration about the yaw axis, slewing
+        // the output rate towards the input rate.
+        _attitude_target_euler_rate.z = input_shaping_ang_vel(_attitude_target_euler_rate.z, euler_yaw_rate, euler_accel.z, _dt);
+
+        // Convert euler angle derivative of desired attitude into a body-frame angular velocity vector for feedforward
+        euler_rate_to_ang_vel(_attitude_target_euler_angle, _attitude_target_euler_rate, _attitude_target_ang_vel);
+        // Limit the angular velocity
+        ang_vel_limit(_attitude_target_ang_vel, radians(_ang_vel_roll_max), radians(_ang_vel_pitch_max), radians(_ang_vel_yaw_max));
+        // Convert body-frame angular velocity into euler angle derivative of desired attitude
+        ang_vel_to_euler_rate(_attitude_target_euler_angle, _attitude_target_ang_vel, _attitude_target_euler_rate);
+    } else {
+        // When feedforward is not enabled, the target euler angle is input into the target and the feedforward rate is zeroed.
+        _attitude_target_euler_angle.x = euler_roll_angle;
+        _attitude_target_euler_angle.y = euler_pitch_angle;
+        _attitude_target_euler_angle.z += euler_yaw_rate * _dt;
+        // Compute quaternion target attitude
+        _attitude_target_quat.from_euler(_attitude_target_euler_angle.x, _attitude_target_euler_angle.y, _attitude_target_euler_angle.z);
+
+        // Set rate feedforward requests to zero
+        _attitude_target_euler_rate = Vector3f(0.0f, 0.0f, 0.0f);
+        _attitude_target_ang_vel = Vector3f(0.0f, 0.0f, 0.0f);
+    }
+    // apply one step of the mu-synthesis controller to calculate new torques
+    _att_inf->updateController(roll, _attitude_target_euler_angle.x, pitch, _attitude_target_euler_angle.y, yaw, _attitude_target_euler_angle.z);
+
+    _att_inf->updateRPYT(thrustRef*-18.0); // Normalized thrust 0-1 to thrust in Newtons 0 - (-18) N
+
+}
+
+void AC_AttitudeControl::reset_H_inf()
+{
+    _att_inf->resetController();
+}
+
+void AC_AttitudeControl::get_rpyt_mu(float& rollCommand, float& pitchCommand, float& yawCommand, float& thrustCommand)
+{
+    rollCommand = _att_inf->getRoll();
+    pitchCommand = _att_inf->getPitch();
+    yawCommand = _att_inf->getYaw();
+    thrustCommand = _att_inf->getThrottle();
+}
+
+// logs mu-synthesis related variables 
+void AC_AttitudeControl::log_mu()
+{
+    AP::logger().Write("HINF", "TimeUS,R,P,Y,Rcom,Pcom,Ycom,Tcom", "Qfffffff",
+        AP_HAL::micros64(), (double)_att_inf->getRollAct(), (double)_att_inf->getPitchAct(), (double)_att_inf->getYawAct(), 
+        (double) _att_inf->getRoll(), _att_inf->getPitch(), _att_inf->getYaw(), _att_inf->getThrottle());
+}
+
+
 // Command euler pitch and yaw angles and roll rate (used only by tailsitter quadplanes)
 // Multicopter style controls: roll stick is tailsitter bodyframe yaw in hover
 void AC_AttitudeControl::input_euler_rate_yaw_euler_angle_pitch_bf_roll_m(float euler_yaw_rate_cds, float euler_pitch_cd, float body_roll_cd)

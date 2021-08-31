@@ -11,6 +11,7 @@
 #include <AP_Motors/AP_Motors.h>
 #include <AC_PID/AC_PID.h>
 #include <AC_PID/AC_P.h>
+#include <AC_AttitudeControl/Attitude_HInf.hpp>
 
 #define AC_ATTITUDE_CONTROL_ANGLE_P                     4.5f             // default angle P gain for roll, pitch and yaw
 
@@ -62,6 +63,7 @@ public:
         _motors(motors)
         {
             AP_Param::setup_object_defaults(this, var_info);
+            _att_inf = new AInf2();
         }
 
     // Empty destructor to suppress compiler warning
@@ -138,6 +140,14 @@ public:
     // Command an euler roll, pitch and yaw angle with angular velocity feedforward and smoothing
     virtual void input_euler_angle_roll_pitch_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_angle_cd, bool slew_yaw);
 
+    virtual void input_euler_angle_roll_pitch_euler_rate_yaw_mu(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds, float roll, float pitch, float yaw, float thrustRef);
+    virtual void reset_H_inf();
+    // returns roll,pitch,yaw and thrust commands as expected by the motors library
+    virtual void get_rpyt_mu(float& rollCommand, float& pitchCommand, float& yawCommand, float& thrustCommand);
+      
+    // log mu-synthesis related variables
+    virtual void log_mu();
+    
     // Command euler yaw rate and pitch angle with roll angle specified in body frame with multicopter style controls
     // (used only by tailsitter quadplanes)
     virtual void input_euler_rate_yaw_euler_angle_pitch_bf_roll_m(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds);
@@ -454,6 +464,7 @@ protected:
     const AP_AHRS_View&  _ahrs;
     const AP_Vehicle::MultiCopter &_aparm;
     AP_Motors&          _motors;
+    AInf2* _att_inf;
 
 protected:
     /*

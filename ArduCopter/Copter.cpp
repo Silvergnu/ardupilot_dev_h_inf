@@ -354,6 +354,7 @@ void Copter::ten_hz_logging_loop()
     }
     if (should_log(MASK_LOG_MOTBATT)) {
         Log_Write_MotBatt();
+        attitude_control->log_mu();
     }
     if (should_log(MASK_LOG_RCIN)) {
         logger.Write_RCIN();

@@ -231,6 +231,7 @@ public:
     friend class ModeSmartRTL;
     friend class ModeSport;
     friend class ModeStabilize;
+    friend class ModeMuStabilize;
     friend class ModeStabilize_Heli;
     friend class ModeSystemId;
     friend class ModeThrow;
@@ -925,6 +926,7 @@ private:
     ModeAcro mode_acro;
 #endif
 #endif
+    ModeMuStabilize mode_mustabilize;
     ModeAltHold mode_althold;
 #if MODE_AUTO_ENABLED == ENABLED
     ModeAuto mode_auto;

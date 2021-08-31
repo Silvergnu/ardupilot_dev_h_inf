@@ -43,6 +43,10 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
             ret = &mode_stabilize;
             break;
 
+        case Mode::Number::MU_STAB:
+            ret = &mode_mustabilize;
+            break;
+
         case Mode::Number::ALT_HOLD:
             ret = &mode_althold;
             break;
@@ -194,7 +198,8 @@ bool Copter::set_mode(Mode::Number mode, ModeReason reason)
 
     Mode *new_flightmode = mode_from_mode_num((Mode::Number)mode);
     if (new_flightmode == nullptr) {
-        gcs().send_text(MAV_SEVERITY_WARNING,"No such mode");
+        gcs().send_text(MAV_SEVERITY_WARNING,"No such mode with No.: %i",mode);
+//        gcs().send_text(MAV_SEVERITY_WARNING,"No such mode");
         AP::logger().Write_Error(LogErrorSubsystem::FLIGHT_MODE, LogErrorCode(mode));
         return false;
     }
