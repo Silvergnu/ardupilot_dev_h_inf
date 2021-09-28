@@ -14,7 +14,8 @@ private:    // Variables arranged in roll pitch yaw order
     const float l  = 0.12;  /*Length from center of mass to motor in x and y directions */
 
     bool shouldInitYaw;
-    float InitialYaw;
+    float InitialYaw; // variable to start with zero intial yaw
+    float InitialYawRef; // variable to start with zero intial yaw reference
     float yawPrev, yawRefPrev; // previous yaw and yaw references
 
     float yawRefShift, yawShift; // yaw shift and yaw reference shift ( to avoid discontuity between 0 & 2 pi )

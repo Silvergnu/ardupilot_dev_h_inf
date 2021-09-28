@@ -129,11 +129,19 @@ void AInf2::updateController(float roll,float rollRef,float pitch,float pitchRef
     if (shouldInitYaw)
     { 
         InitialYaw = yaw;
+        InitialYawRef = yawRef;
+        yawPrev = yaw;
+        yawRefPrev = yawRef;
+		yawShift = 0;
+        yawRefShift = 0;
         shouldInitYaw = 0;
     }
 
-    // compensate for yaw discontiuity at 0 <-> 2*pi
 
+
+
+    // compensate for yaw discontiuity at 0 <-> 2*pi
+/*
     if (yaw < 0.8 && yawPrev > 5.4)
         yawShift += 2 * 3.1415927; // add 2*pi if discontiuity is crossed
     else if (yaw > 5.4 && yawPrev < 0.8)
@@ -146,8 +154,26 @@ void AInf2::updateController(float roll,float rollRef,float pitch,float pitchRef
     else if (yawRef > 5.4 && yawRefPrev < 0.8)
         yawRefShift -= 2 * 3.1415927; // subtract 2*pi 
     yawRefPrev = yawRef;
+*/
+    if ((yaw - yawPrev) > 5 ) // yaw increased by 2*pi so we need to remove 2*pi
+        yawShift -= 2 * 3.1415927; // remove 2*pi if discontiuity is crossed
+    else if ((yawPrev - yaw) > 5) // yaw decreased by 2*pi so we need to add 2*pi
+        yawShift += 2 * 3.1415927; // add 2*pi 
+    yawPrev = yaw;
 
-    U_Inf<<rollRef,pitchRef,(yawRef+yawRefShift-InitialYaw),roll,pitch,(yaw+yawShift-InitialYaw); // Input to H-infinity controller
+    // compensate for yaw reference discontiuity at 0 <-> 2*pi
+    if ((yawRef - yawRefPrev)>5) // yaw increased by 2*pi so we need to remove 2*pi
+        yawRefShift -= 2 * 3.1415927; // remove 2*pi if discontiuity is crossed
+    else if (( yawRefPrev - yawRef)>5) // yaw decreased by 2*pi so we need to add 2*pi
+        yawRefShift += 2 * 3.1415927; // add 2*pi 
+    yawRefPrev = yawRef;
+
+ // remove initial yaw values to avoid step responses from controller
+    yaw -= InitialYaw;
+    yawRef -= InitialYawRef;
+
+    U_Inf<<rollRef,pitchRef,(yawRef+yawRefShift),roll,pitch,(yaw+yawShift); // Input to H-infinity controller
+
 
 	U_Inf*=(1.0/0.3); // Normalize Angles Vector
 
@@ -156,7 +182,7 @@ void AInf2::updateController(float roll,float rollRef,float pitch,float pitchRef
 
         /*Update Lead controller*/
 
-	U_L<<roll,pitch,(yaw+yawShift-InitialYaw); // Input to lead controller
+	U_L<<roll,pitch,(yaw+yawShift); // Input to lead controller
 	U_L*=(1.0/0.3); // Normalize Angles Vector
 
 	X_L=A_L*X_L+B_L*U_L;
@@ -195,7 +221,7 @@ void AInf2::updateController(float roll,float rollRef,float pitch,float pitchRef
 
     rollAct = roll;
     pitchAct = pitch;
-    yawAct = (yaw + yawShift - InitialYaw);
+    yawAct = (yaw + yawShift);
 
 //	std::cout<<"uk:"<<uk[0]<<","<<uk[1]<<","<<uk[2]<<"\n";
 }

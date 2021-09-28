@@ -367,7 +367,7 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_mu(float eu
     // Add roll trim to compensate tail rotor thrust in heli (will return zero on multirotors)
     euler_roll_angle += get_roll_trim_rad();
 
-    if (_rate_bf_ff_enabled) {
+   /* if (_rate_bf_ff_enabled) {
         // translate the roll pitch and yaw acceleration limits to the euler axis
         Vector3f euler_accel = euler_accel_limit(_attitude_target_euler_angle, Vector3f(get_accel_roll_max_radss(), get_accel_pitch_max_radss(), get_accel_yaw_max_radss()));
 
@@ -387,7 +387,7 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_mu(float eu
         ang_vel_limit(_attitude_target_ang_vel, radians(_ang_vel_roll_max), radians(_ang_vel_pitch_max), radians(_ang_vel_yaw_max));
         // Convert body-frame angular velocity into euler angle derivative of desired attitude
         ang_vel_to_euler_rate(_attitude_target_euler_angle, _attitude_target_ang_vel, _attitude_target_euler_rate);
-    } else {
+    } else {*/
         // When feedforward is not enabled, the target euler angle is input into the target and the feedforward rate is zeroed.
         _attitude_target_euler_angle.x = euler_roll_angle;
         _attitude_target_euler_angle.y = euler_pitch_angle;
@@ -398,7 +398,7 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_mu(float eu
         // Set rate feedforward requests to zero
         _attitude_target_euler_rate = Vector3f(0.0f, 0.0f, 0.0f);
         _attitude_target_ang_vel = Vector3f(0.0f, 0.0f, 0.0f);
-    }
+//    }
     // apply one step of the mu-synthesis controller to calculate new torques
     _att_inf->updateController(roll, _attitude_target_euler_angle.x, pitch, _attitude_target_euler_angle.y, yaw, _attitude_target_euler_angle.z);
 

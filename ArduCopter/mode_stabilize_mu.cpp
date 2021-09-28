@@ -84,7 +84,7 @@ void ModeMuStabilize::run()
 
         count = 0;
 
-        AP::logger().Write("RPYC","TimeUS,RollRef,Roll,PitchRef,Pitch,YawRef,Yaw","Qffffff",AP_HAL::micros64(),target_roll,roll,target_pitch,pitch,target_yaw_rate,yaw);
+ //       AP::logger().Write("RPYC","TimeUS,RollRef,Roll,PitchRef,Pitch,YawRef,Yaw","Qffffff",AP_HAL::micros64(),target_roll,roll,target_pitch,pitch,target_yaw_rate,yaw);
     }
 
 
