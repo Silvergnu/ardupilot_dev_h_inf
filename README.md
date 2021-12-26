@@ -1,4 +1,4 @@
-# ArduPilot Project H_Infinity Development
+# ArduPilot Project H_Infinity Development Branch
 
 This branch represents implementation of a mode for testing H-infinity synthesis-based controller on multirotor UAVs
 
